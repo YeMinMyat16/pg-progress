@@ -1,0 +1,97 @@
+services:
+  server:
+    build: ./server
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-network
+    volumes:
+      - ./server/uploads:/app/uploads
+      - ./server/src:/app/src
+
+  frontend-user:
+    build: 
+      context: ./client
+      dockerfile: Dockerfile
+    command: npm run dev:user
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./.env
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    networks:
+      - app-network
+
+  frontend-admin:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    command: npm run dev:admin
+    ports:
+      - "5174:5174"
+    env_file:
+      - ./.env
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.0
+    restart: always
+    env_file:
+      - ./.env
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    ports:
+      - "8080:80"
+    env_file:
+      - ./.env
+    environment:
+      PMA_HOST: mysql
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+
+networks:
+  app-network:
+    driver: bridge
